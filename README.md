@@ -1,95 +1,121 @@
-# Active-Directory-Lab-Security-Migration
-Simulation d’une infrastructure Active Directory : audit de sécurité, analyse des vulnérabilités et migration vers Windows Server 2019.
+# 🏢 Interconnexion et sécurisation de deux domaines Active Directory
+
+> Projet réalisé dans le cadre de la formation **TSSR – RNCP 37682** (COS Formation, 2024/2025)
+
+Infrastructure Active Directory multi-sites déployée sous VMware, avec deux domaines distincts interconnectés via un pare-feu pfSense, gestion des accès AGDLP et audit de sécurité.
 
 ---
 
-![Windows Server](https://img.shields.io/badge/Windows%20Server-2016%20→%202019-blue)
-![Active Directory](https://img.shields.io/badge/Active%20Directory-Lab-lightgrey)
-![Security](https://img.shields.io/badge/Security-Audit-red)
-![Status](https://img.shields.io/badge/Status-In%20Progress-yellow)
+## 🗺️ Architecture
+
+```
+┌─────────────────────┐         ┌─────────────────────┐
+│     Site BODA       │         │      Site OBO        │
+│                     │         │                      │
+│  DC-BODA            │         │  DC-OBO              │
+│  bodaht.fr          │         │  oboht.fr            │
+│  192.168.0.96/29    │         │  172.16.100.96/29    │
+│                     │         │                      │
+└────────┬────────────┘         └──────────┬───────────┘
+         │                                 │
+         │         ┌───────────┐           │
+         └────────►│  pfSense  │◄──────────┘
+                   │  Routeur  │
+                   │  Firewall │
+                   └─────┬─────┘
+                         │
+                       [WAN]
+```
+
+![Schéma réseau](screenshots/01-schema-reseau.png)
 
 ---
 
-## 🧠 Contexte
+## 🛠️ Stack technique
 
-Projet réalisé dans le cadre de ma formation TSSR, simulant une infrastructure Active Directory en environnement entreprise.
-
-Objectif : analyser, sécuriser et faire évoluer un contrôleur de domaine.
-
----
-
-## 📄 Documentation
-
-- 📑 [Compte rendu d’audit Active Directory](documents/01-Audit.pdf)  
-- 🛠️ [Préparation à la migration](documents/02-preparation_migration.pdf)
+| Composant | Rôle |
+|-----------|------|
+| Windows Server 2022 | Contrôleurs de domaine (x2) |
+| Active Directory DS | Annuaire, authentification Kerberos |
+| DNS (intégré AD) | Résolution de noms inter-domaines |
+| pfSense | Routage inter-sites + pare-feu |
+| VMware Workstation | Virtualisation de l'infrastructure |
+| PingCastle | Audit de sécurité Active Directory |
 
 ---
 
-## 🎯 Objectifs
+## 📋 Ce que couvre ce projet
 
-- Mettre en place un environnement Active Directory  
-- Réaliser un audit de sécurité  
-- Identifier et corriger les vulnérabilités  
-- Préparer et effectuer une migration vers Windows Server 2019  
-
----
-
-## 🧩 Étapes du projet
-
-| Étape | Description |
-|------|------------|
-| 🔍 Audit | Analyse de sécurité avec PingCastle |
-| 🛠️ Préparation | Vérification et sécurisation de l’environnement |
-| 🔄 Migration | Passage de Windows Server 2016 à 2019 |
+- **Déploiement AD** – Installation et promotion de deux contrôleurs de domaine sur des domaines distincts (`bodaht.fr` et `oboht.fr`)
+- **Configuration réseau** – Adressage IP statique, segmentation par site, configuration des interfaces VMware
+- **Routage pfSense** – Interconnexion des deux sites via interfaces LAN / OPT1 / WAN
+- **Règles firewall** – Ouverture des flux nécessaires à AD (ICMP, DNS/53, Kerberos/88, LDAP/389, RPC...)
+- **DNS inter-domaines** – Redirecteurs conditionnels croisés pour la résolution entre sites
+- **Trust bidirectionnel** – Relation d'approbation entre les deux domaines AD
+- **AGDLP** – Gestion des accès structurée : Account → Global Group → Domain Local → Permission
+- **NTP** – Synchronisation temporelle hiérarchique (w32tm + pfSense)
+- **Audit PingCastle** – Analyse des risques et identification des vulnérabilités de configuration
 
 ---
 
-## 📊 Audit – Résumé
+## 📸 Aperçu
 
-> **Domain Risk Level : 100 / 100**
+### Trust Active Directory validé
+![Trust validé](screenshots/07-trust-valide.png)
 
-![PingCastle Score](captures/PingCastle.png)
+### Règles firewall pfSense (interface OPT1)
+![Règles firewall](screenshots/05-regles-firewall-opt1.png)
 
-Analyse réalisée avec PingCastle en mode privilégié.
+### Résolution DNS croisée (nslookup)
+![nslookup croisé](screenshots/06-nslookup-croise.png)
 
-### Principales vulnérabilités :
-
-- 🔥 MS17-010 (EternalBlue)  
-- 🔥 SMBv1 / NTLMv1 actifs  
-- 🔥 Print Spooler actif sur le DC  
-- ⚠️ LLMNR activé  
-- ⚠️ Absence de LAPS  
+### Audit PingCastle
+![Score PingCastle](screenshots/09-pingcastle-score.png)
 
 ---
 
-## 🛠️ Approche
+## 📁 Contenu du repo
 
-Les vulnérabilités ont été classées selon leur impact :
+```
+.
+├── README.md
+├── docs/
+│   └── compte-rendu.docx        # Compte rendu détaillé (contexte, manips, problèmes, solutions)
+├── screenshots/                 # Captures organisées dans l'ordre des manipulations
+│   ├── 01-schema-reseau.png
+│   ├── 02-promotion-dc.png
+│   ├── 03-ipconfig-boda.png
+│   ├── 03-ipconfig-obo.png
+│   ├── 04-interfaces-pfsense.png
+│   ├── 05-regles-firewall-opt1.png
+│   ├── 06-redirecteurs-conditionnels.png
+│   ├── 06-nslookup-croise.png
+│   ├── 07-trust-valide.png
+│   ├── 08-groupes-agdlp.png
+│   ├── 08-permissions-ntfs.png
+│   ├── 09-pingcastle-score.png
+│   └── 10-w32tm-status.png
+└── configs/
+    └── pfsense-config.xml       # Export de la configuration pfSense (si disponible)
+```
 
-- 🔥 Critique → risque direct  
-- ⚠️ Important → mauvaise pratique  
-- 🧪 Mineur → optimisation  
+---
 
-Objectif : prioriser les actions de correction avant migration.
+## 🧠 Ce que j'ai appris
+
+- Le **DNS est la clé de voûte d'Active Directory** : toute erreur DNS bloque le trust, l'authentification et la réplication. On ne peut pas avancer sans le valider en premier.
+- **pfSense applique un deny-all par défaut** : il faut ouvrir les flux service par service et valider chaque règle progressivement — ça force une bonne compréhension des ports utilisés par AD.
+- **L'interdépendance des services** est la vraie difficulté : réseau, DNS, Kerberos et NTP doivent tous fonctionner ensemble. Un seul composant défaillant peut casser quelque chose d'apparemment sans rapport.
+- **PingCastle révèle que la configuration par défaut n'est pas sécurisée** : un environnement qui "fonctionne" n'est pas forcément un environnement sûr.
 
 ---
 
-## 🔎 Points d’apprentissage
+## 👤 Auteur
 
-Ce projet m’a permis de consolider plusieurs compétences :
-
-- Structuration des accès avec la méthode AGDLP  
-- Diagnostic et résolution de problèmes réseau  
-- Configuration du pare-feu Windows  
-- Analyse de vulnérabilités dans un environnement Active Directory   
+**HT** – Candidat TSSR (Technicien Supérieur Systèmes et Réseaux)  
+Formation en alternance à distance – COS Formation  
+[LinkedIn](#) | [GitHub](#)
 
 ---
 
-## 🧰 Outils utilisés
-
-- Active Directory (AD DS)  
-- DNS  
-- PowerShell  
-- PingCastle  
-
----
+*Projet réalisé en environnement de lab VMware à des fins pédagogiques.*
