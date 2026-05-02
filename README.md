@@ -1,6 +1,6 @@
 # 🏢 Interconnexion et sécurisation de deux domaines Active Directory
 
-> Projet réalisé dans le cadre de la formation **TSSR – RNCP 37682** (COS Formation, 2024/2025)
+> Infrastructure déployée en lab VMware — deux domaines AD interconnectés via pfSense, trust bidirectionnel, audit PingCastle
 
 Infrastructure Active Directory multi-sites déployée sous VMware, avec deux domaines distincts interconnectés via un pare-feu pfSense, gestion des accès AGDLP et audit de sécurité.
 
