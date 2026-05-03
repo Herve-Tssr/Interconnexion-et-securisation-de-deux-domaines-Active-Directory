@@ -1,31 +1,12 @@
 # 🏢 Interconnexion et sécurisation de deux domaines Active Directory
 
-> Infrastructure déployée en lab VMware — deux domaines AD interconnectés via pfSense, trust bidirectionnel, audit PingCastle
+> Projet réalisé dans le cadre de la formation **TSSR – RNCP 37682** (COS Formation, 2024/2025)
 
 Infrastructure Active Directory multi-sites déployée sous VMware, avec deux domaines distincts interconnectés via un pare-feu pfSense, gestion des accès AGDLP et audit de sécurité.
 
 ---
 
 ## 🗺️ Architecture
-
-```
-┌─────────────────────┐         ┌─────────────────────┐
-│     Site BODA       │         │      Site OBO        │
-│                     │         │                      │
-│  DC-BODA            │         │  DC-OBO              │
-│  bodaht.fr          │         │  oboht.fr            │
-│  192.168.0.96/29    │         │  172.16.100.96/29    │
-│                     │         │                      │
-└────────┬────────────┘         └──────────┬───────────┘
-         │                                 │
-         │         ┌───────────┐           │
-         └────────►│  pfSense  │◄──────────┘
-                   │  Routeur  │
-                   │  Firewall │
-                   └─────┬─────┘
-                         │
-                       [WAN]
-```
 
 ![Schéma réseau](screenshots/01-schema-reseau.png)
 
@@ -55,19 +36,55 @@ Infrastructure Active Directory multi-sites déployée sous VMware, avec deux do
 - **AGDLP** – Gestion des accès structurée : Account → Global Group → Domain Local → Permission
 - **NTP** – Synchronisation temporelle hiérarchique (w32tm + pfSense)
 - **Audit PingCastle** – Analyse des risques et identification des vulnérabilités de configuration
+- **Hardening firewall** – Refonte des règles après audit : suppression des règles `any → any`, principe du moindre privilège appliqué sur LAN et OPT1
+
+---
+
+## 🔧 Itération sécurité – Refonte des règles firewall
+
+Après la mise en place initiale, les règles firewall ont été **entièrement refondues** pour remplacer une configuration trop permissive par un filtrage précis.
+
+**Problème identifié** : les règles initiales autorisaient tout le trafic (`any → any`), ce qui ne respecte pas les bonnes pratiques de sécurité.
+
+**Actions réalisées :**
+
+| Interface | Avant | Après |
+|-----------|-------|-------|
+| OPT1 (OBO) | `any → any` | ICMP + alias `AD_PORTS` uniquement |
+| LAN (BODA) | `allow any` par défaut | Règles explicites vers OBO + Internet |
+
+**Alias `AD_PORTS` créé** pour regrouper les ports nécessaires à AD :
+
+| Port | Service |
+|------|---------|
+| 53 | DNS |
+| 88 | Kerberos |
+| 135 | RPC |
+| 389 | LDAP |
+| 445 | SMB |
+
+**Problèmes rencontrés :** blocage accidentel de l'interface pfSense (HTTP/HTTPS), récupération via console, correction de la logique alias.
+
+**Validation finale :** ping inter-sites ✅ | nslookup croisé ✅ | nltest (trust AD) ✅
+
+![Règles OPT1 après refonte](screenshots/05b-regles-opt1-hardened.png)
+![Alias AD_PORTS](screenshots/05c-alias-ad-ports.png)
 
 ---
 
 ## 📸 Aperçu
 
 ### Trust Active Directory validé
-![Trust validé](screenshots/07-trust-valide.png)
+![Trust validé](screenshots/07-trust-valide1.png)
+![Trust validé](screenshots/07-trust-valide2.png)
+![Trust validé](screenshots/07-trust-valide3.png)
 
 ### Règles firewall pfSense (interface OPT1)
 ![Règles firewall](screenshots/05-regles-firewall-opt1.png)
 
 ### Résolution DNS croisée (nslookup)
-![nslookup croisé](screenshots/06-nslookup-croise.png)
+![nslookup croisé](screenshots/06-nslookup-croise1.png)
+![nslookup croisé](screenshots/06-nslookup-croise2.png)
 
 ### Audit PingCastle
 ![Score PingCastle](screenshots/09-pingcastle-score.png)
@@ -88,6 +105,8 @@ Infrastructure Active Directory multi-sites déployée sous VMware, avec deux do
 │   ├── 03-ipconfig-obo.png
 │   ├── 04-interfaces-pfsense.png
 │   ├── 05-regles-firewall-opt1.png
+│   ├── 05b-regles-opt1-hardened.png
+│   ├── 05c-alias-ad-ports.png
 │   ├── 06-redirecteurs-conditionnels.png
 │   ├── 06-nslookup-croise.png
 │   ├── 07-trust-valide.png
